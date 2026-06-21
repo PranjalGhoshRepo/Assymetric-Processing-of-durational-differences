@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bengali Speech Phonetic Analyzer</title>
+    <!-- Modern Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon"><i class="fa-solid fa-waveform"></i></div>
+                <div class="logo-text">
+                    <h1>Bengali Phonetic Analyzer</h1>
+                    <span>Speech Duration & Gemination Classifier</span>
+                </div>
+            </div>
+            <div class="header-status">
+                <span class="status-indicator online"></span>
+                <span class="status-label">Linguistic Engine Active</span>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Panel: Control Center & Audio Upload -->
+            <section class="panel control-panel">
+                <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Control Center</h2>
+                
+                <!-- File Upload Box -->
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" id="audioFileInput" accept="audio/*" class="file-input">
+                    <div class="upload-content">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <h3>Drag & drop your audio file</h3>
+                        <p>Supports WAV, MP3, M4A up to 32MB</p>
+                        <button class="btn btn-primary">Browse Files</button>
+                    </div>
+                </div>
+
+                <!-- Local File Tester (Developer Heuristics) -->
+                <div class="local-samples-section">
+                    <h3><i class="fa-solid fa-folder-open"></i> Or choose a local workspace sample</h3>
+                    <div class="samples-list" id="samplesList">
+                        <div class="loading-inline"><i class="fa-solid fa-spinner fa-spin"></i> Loading samples...</div>
+                    </div>
+                </div>
+
+                <!-- Current Audio Player -->
+                <div class="player-container hidden" id="playerContainer">
+                    <h3><i class="fa-solid fa-circle-play"></i> Active Audio</h3>
+                    <audio id="audioPlayer" controls></audio>
+                    <div id="activeFileName" class="active-file-name"></div>
+                </div>
+
+                <!-- Info Cards -->
+                <div class="info-card">
+                    <h4><i class="fa-solid fa-circle-info"></i> How it works</h4>
+                    <p>This system performs sub-word forced alignment using WhisperX to obtain exact character-level start and end timings. Consonant duration rules then classify gemination ("Long" vs "Short" consonants).</p>
+                </div>
+            </section>
+
+            <!-- Right Panel: Dynamic Results & Visualizations -->
+            <main class="panel results-panel empty" id="resultsPanel">
+                
+                <!-- Initial State Placeholder -->
+                <div class="results-placeholder" id="resultsPlaceholder">
+                    <i class="fa-solid fa-wave-square placeholder-icon"></i>
+                    <h2>Analysis Pipeline Ready</h2>
+                    <p>Upload an audio file or select a workspace sample to execute transcription, forced alignment, and phonetic duration classification.</p>
+                </div>
+
+                <!-- Analysis Loader -->
+                <div class="results-loader hidden" id="resultsLoader">
+                    <div class="spinner-container">
+                        <div class="double-bounce1"></div>
+                        <div class="double-bounce2"></div>
+                    </div>
+                    <h3>Processing Speech Signal...</h3>
+                    <p id="loaderStatus">Running forced alignment model</p>
+                </div>
+
+                <!-- Main Analysis Output (Hidden until loaded) -->
+                <div class="analysis-output hidden" id="analysisOutput">
+                    
+                    <!-- Top Summary Stats -->
+                    <div class="summary-stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statAlignment">-</div>
+                            <div class="stat-label">Alignment Confidence</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statAccuracy">-</div>
+                            <div class="stat-label">Classification Accuracy</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statF1">-</div>
+                            <div class="stat-label">F1-Score (Macro)</div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs Menu -->
+                    <div class="tabs-nav">
+                        <button class="tab-btn active" data-tab="transcription"><i class="fa-solid fa-comment-dots"></i> Transcription</button>
+                        <button class="tab-btn" data-tab="breakdown"><i class="fa-solid fa-list-check"></i> Phonetic Breakdown</button>
+                        <button class="tab-btn" data-tab="linguistic"><i class="fa-solid fa-language"></i> Linguistic Interpretation</button>
+                        <button class="tab-btn" data-tab="metrics"><i class="fa-solid fa-chart-simple"></i> System Metrics</button>
+                    </div>
+
+                    <!-- Tab Content: Transcription -->
+                    <div class="tab-content active" id="tab-transcription">
+                        <div class="transcription-card">
+                            <h3><i class="fa-solid fa-align-left"></i> Transliterated Speech Output</h3>
+                            <p class="transcription-text" id="transcriptionText"></p>
+                        </div>
+                        <div class="word-timings-section">
+                            <h3><i class="fa-solid fa-clock"></i> Word Timings</h3>
+                            <div class="words-timeline" id="wordsTimeline"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Content: Breakdown Table -->
+                    <div class="tab-content" id="tab-breakdown">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Word</th>
+                                        <th>Consonant</th>
+                                        <th>Duration</th>
+                                        <th>Classification</th>
+                                        <th>Rule / Decision Rationale</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="breakdownTableBody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab Content: Linguistic Insights (LM Studio) -->
+                    <div class="tab-content" id="tab-linguistic">
+                        <div class="linguistic-grid">
+                            <div class="llm-report-card">
+                                <h3><i class="fa-solid fa-robot"></i> LM Studio AI Analysis</h3>
+                                <div class="llm-analysis-content" id="llmAnalysisText"></div>
+                            </div>
+                            <div class="labels-comparison-card">
+                                <h3><i class="fa-solid fa-code-compare"></i> Expected vs Detected Labels</h3>
+                                <div class="labels-comparison-container" id="labelsComparison">
+                                    <!-- Comparisons -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Content: System Metrics -->
+                    <div class="tab-content" id="tab-metrics">
+                        <div class="metrics-grid">
+                            <div class="metric-detailed-card">
+                                <h3>Detailed Performance Indicators</h3>
+                                <ul class="metric-list">
+                                    <li>
+                                        <span>Alignment Confidence</span>
+                                        <strong id="metricAlignmentVal">-</strong>
+                                    </li>
+                                    <li>
+                                        <span>Phonetic Accuracy</span>
+                                        <strong id="metricAccuracyVal">-</strong>
+                                    </li>
+                                    <li>
+                                        <span>Precision (Macro)</span>
+                                        <strong id="metricPrecisionVal">-</strong>
+                                    </li>
+                                    <li>
+                                        <span>Recall (Macro)</span>
+                                        <strong id="metricRecallVal">-</strong>
+                                    </li>
+                                    <li>
+                                        <span>F1-Score (Macro)</span>
+                                        <strong id="metricF1Val">-</strong>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="metric-detailed-card">
+                                <h3>Confusion Matrix</h3>
+                                <div class="confusion-matrix-wrapper" id="confusionMatrixContainer">
+                                    <!-- Matrix table -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </main>
+
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>
