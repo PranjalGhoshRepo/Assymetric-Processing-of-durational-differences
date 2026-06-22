@@ -307,7 +307,8 @@ def analyze_audio(audio_path: str) -> dict:
                     print(f"\n[warn] Could not parse Validation JSON: {je}")
         except Exception as e:
             print(f"\n[Linguistic Analysis Failed]: {e}")
-            llm_analysis_text = f"LM Studio is offline or unavailable. Details: {e}"
+            provider = "Groq" if groq_api_key else "LM Studio"
+            llm_analysis_text = f"{provider} is offline or unavailable. Details: {e}"
 
     metrics = {}
     if alignment_scores:
@@ -364,4 +365,4 @@ if __name__ == "__main__":
     print(f"Segments Count: {len(res['segments'])}")
     print(f"Consonants classified: {len(res['consonants_detailed'])}")
     print(f"Metrics: {res['metrics']}")
-    print(f"LM Studio Analysis:\n{res['llm_analysis']}")
+    print(f"LM Studio Analysis:\n{res['llm_analysis']}")
