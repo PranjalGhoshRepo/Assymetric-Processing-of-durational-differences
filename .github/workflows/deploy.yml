@@ -20,5 +20,5 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git remote add hf https://oauth2:$HF_TOKEN@huggingface.co/spaces/pranjalghosh2004/bengali-speech-analyzer
+          git remote add hf https://oauth2:$HF_TOKEN@huggingface.co/spaces/pranjalghosh2004/bengali-phonetic-analyzer
           git push --force hf main
