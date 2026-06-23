@@ -1,7 +1,8 @@
 import os
 import tempfile
+import time
 from flask import Flask, request, jsonify, render_template, send_from_directory
-from main import analyze_audio, load_models
+from main import analyze_audio, load_models, enhance_audio
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -14,6 +15,24 @@ app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB max upload limit
 print("Pre-loading models at startup...")
 load_models()
 print("Models preloaded successfully.")
+
+# Ensure static/enhanced directory exists
+ENHANCED_DIR = os.path.join('static', 'enhanced')
+os.makedirs(ENHANCED_DIR, exist_ok=True)
+
+def cleanup_enhanced_files():
+    try:
+        now = time.time()
+        for f in os.listdir(ENHANCED_DIR):
+            filepath = os.path.join(ENHANCED_DIR, f)
+            # Remove files older than 15 minutes
+            if os.path.getmtime(filepath) < now - 900:
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"Cleanup error: {e}")
 
 @app.route('/')
 def index():
@@ -31,16 +50,30 @@ def analyze():
     # Save to a temporary file
     _, ext = os.path.splitext(file.filename)
     if not ext:
-        ext = '.wav'  # default to WAV
+        ext = '.wav'
         
     temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"uploaded_{os.urandom(8).hex()}{ext}")
     
+    # Generate enhanced file path
+    enhanced_filename = f"enhanced_{os.urandom(8).hex()}.wav"
+    enhanced_path = os.path.join(ENHANCED_DIR, enhanced_filename)
+    
     try:
         file.save(temp_path)
-        print(f"File saved to {temp_path}. Running analysis...")
+        print(f"File saved. Enhancing audio...")
         
-        # Perform Bengali Phonetic Duration Analysis
-        results = analyze_audio(temp_path)
+        # 1. Clean background noise & enhance speech
+        enhance_audio(temp_path, enhanced_path)
+        
+        # 2. Perform analysis on the ENHANCED file
+        print(f"Enhanced audio saved to {enhanced_path}. Running analysis...")
+        results = analyze_audio(enhanced_path)
+        
+        # 3. Add the enhanced audio URL to results
+        results['enhanced_audio_url'] = f"/static/enhanced/{enhanced_filename}"
+        
+        # Periodic cleanup of old cached files
+        cleanup_enhanced_files()
         
         return jsonify(results)
         
@@ -49,7 +82,7 @@ def analyze():
         return jsonify({'error': str(e)}), 500
         
     finally:
-        # Clean up the uploaded file
+        # Clean up raw upload
         if os.path.exists(temp_path):
             try:
                 os.remove(temp_path)
@@ -63,7 +96,6 @@ def serve_sample(filename):
 @app.route('/api/samples', methods=['GET'])
 def list_samples():
     try:
-        # Scan workspace directory for wav files
         files = [f for f in os.listdir('.') if f.lower().endswith('.wav')]
         return jsonify(files)
     except Exception as e:
@@ -76,13 +108,22 @@ def analyze_local():
     if not filename:
         return jsonify({'error': 'No filename provided'}), 400
         
-    # Security: check if file exists locally in the workspace
     if not os.path.exists(filename) or '/' in filename or '\\' in filename:
         return jsonify({'error': 'Invalid file or file not found'}), 404
         
+    # Generate enhanced file path
+    enhanced_filename = f"enhanced_{os.urandom(8).hex()}.wav"
+    enhanced_path = os.path.join(ENHANCED_DIR, enhanced_filename)
+    
     try:
-        print(f"Analyzing local file: {filename}")
-        results = analyze_audio(filename)
+        print(f"Enhancing local file: {filename}...")
+        enhance_audio(filename, enhanced_path)
+        
+        print(f"Enhanced local file saved to {enhanced_path}. Running analysis...")
+        results = analyze_audio(enhanced_path)
+        results['enhanced_audio_url'] = f"/static/enhanced/{enhanced_filename}"
+        
+        cleanup_enhanced_files()
         return jsonify(results)
     except Exception as e:
         print(f"Error during local analysis: {e}")
