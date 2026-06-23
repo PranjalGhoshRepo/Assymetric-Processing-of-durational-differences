@@ -38,14 +38,64 @@
             <section class="panel control-panel">
                 <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Control Center</h2>
                 
-                <!-- File Upload Box -->
-                <div class="upload-zone" id="uploadZone">
-                    <input type="file" id="audioFileInput" accept="audio/*" class="file-input">
-                    <div class="upload-content">
-                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
-                        <h3>Drag & drop your audio file</h3>
-                        <p>Supports WAV, MP3, M4A up to 32MB</p>
-                        <button class="btn btn-primary">Browse Files</button>
+                <!-- Input Mode Tabs -->
+                <div class="input-mode-tabs">
+                    <button class="input-tab-btn active" id="tabUploadMode"><i class="fa-solid fa-file-arrow-up"></i> Upload Audio</button>
+                    <button class="input-tab-btn" id="tabRecordMode"><i class="fa-solid fa-microphone"></i> Record Voice</button>
+                </div>
+
+                <!-- File Upload Container -->
+                <div id="uploadModeContainer" class="mode-container">
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="audioFileInput" accept="audio/*" class="file-input">
+                        <div class="upload-content">
+                            <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                            <h3>Drag & drop your audio file</h3>
+                            <p>Supports WAV, MP3, M4A up to 32MB</p>
+                            <button class="btn btn-primary">Browse Files</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Voice Recorder Container -->
+                <div id="recordModeContainer" class="mode-container hidden">
+                    <div class="recorder-zone">
+                        <div class="recorder-status">
+                            <div class="record-pulse-indicator" id="recordPulse"></div>
+                            <span id="recorderStateText" style="font-weight: 500; font-size: 0.95rem;">Ready to record</span>
+                        </div>
+                        <div class="recorder-timer" id="recordTimer">00:00</div>
+                        
+                        <!-- Visualizer animation -->
+                        <div class="recorder-visualizer hidden" id="recordVisualizer">
+                            <div class="visualizer-bar" style="animation-delay: 0.1s"></div>
+                            <div class="visualizer-bar" style="animation-delay: 0.3s"></div>
+                            <div class="visualizer-bar" style="animation-delay: 0.2s"></div>
+                            <div class="visualizer-bar" style="animation-delay: 0.5s"></div>
+                            <div class="visualizer-bar" style="animation-delay: 0.4s"></div>
+                            <div class="visualizer-bar" style="animation-delay: 0.2s"></div>
+                            <div class="visualizer-bar" style="animation-delay: 0.6s"></div>
+                            <div class="visualizer-bar" style="animation-delay: 0.3s"></div>
+                        </div>
+
+                        <div class="recorder-controls">
+                            <button class="btn-round btn-record" id="btnRecordStart" title="Start Recording">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                            <button class="btn-round btn-stop hidden" id="btnRecordStop" title="Stop Recording">
+                                <i class="fa-solid fa-square"></i>
+                            </button>
+                        </div>
+
+                        <!-- Preview player and submit -->
+                        <div class="recorder-preview-container hidden" id="recordPreviewContainer">
+                            <h4><i class="fa-solid fa-circle-play"></i> Recording Preview</h4>
+                            <audio id="recordPreviewPlayer" controls style="width: 100%; margin-bottom: 1rem;"></audio>
+                            <div class="preview-actions" style="display: flex; gap: 1rem; width: 100%;">
+                                <button class="btn btn-secondary" id="btnRecordDiscard" style="flex: 1;"><i class="fa-solid fa-trash"></i> Discard</button>
+                                <button class="btn btn-primary" id="btnRecordAnalyze" style="flex: 1;"><i class="fa-solid fa-magnifying-glass"></i> Analyze</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
