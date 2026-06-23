@@ -59,9 +59,13 @@
 
                 <!-- Current Audio Player -->
                 <div class="player-container hidden" id="playerContainer">
-                    <h3><i class="fa-solid fa-circle-play"></i> Active Audio</h3>
+                    <h3><i class="fa-solid fa-circle-play"></i> Raw Audio</h3>
                     <audio id="audioPlayer" controls></audio>
-                    <div id="activeFileName" class="active-file-name"></div>
+                    <div id="activeFileName" class="active-file-name" style="margin-bottom: 1.5rem;"></div>
+
+                    <h3 style="border-top: 1px solid var(--panel-border); padding-top: 1.5rem;"><i class="fa-solid fa-wand-magic-sparkles"></i> Enhanced & Cleaned Audio</h3>
+                    <audio id="enhancedAudioPlayer" controls></audio>
+                    <div class="active-file-name" style="color: var(--secondary);">Background noise cancelled & voice boosted</div>
                 </div>
 
                 <!-- Info Cards -->
