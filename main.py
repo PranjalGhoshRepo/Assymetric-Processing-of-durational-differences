@@ -113,6 +113,47 @@ def load_wav_mono_16k(path: str) -> np.ndarray:
     
     return data.astype(np.float32)
 
+def enhance_audio(input_path: str, output_path: str):
+    import noisereduce as nr
+    from scipy.signal import butter, lfilter
+    
+    # Load audio
+    data, sr = sf.read(input_path, dtype='float32')
+    
+    # Convert to mono if stereo
+    if len(data.shape) > 1:
+        data = data.mean(axis=1)
+        
+    # Perform stationary noise reduction using noisereduce
+    reduced_noise = nr.reduce_noise(y=data, sr=sr, stationary=True)
+    
+    # Add a bandpass filter targeting human speech frequencies (80Hz to 4000Hz)
+    def butter_bandpass(lowcut, highcut, fs, order=4):
+        nyq = 0.5 * fs
+        low = lowcut / nyq
+        high = highcut / nyq
+        b, a = butter(order, [low, high], btype='band')
+        return b, a
+
+    def bandpass_filter(data, lowcut, highcut, fs, order=4):
+        b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+        y = lfilter(b, a, data)
+        return y
+        
+    # Filter frequencies below 80Hz and above 4000Hz (or half sampling rate)
+    high_limit = min(4000.0, sr / 2.0 - 1.0)
+    filtered = bandpass_filter(reduced_noise, 80.0, high_limit, sr)
+    
+    # Peak normalize
+    max_val = np.max(np.abs(filtered))
+    if max_val > 0:
+        normalized = filtered / max_val * 0.95
+    else:
+        normalized = filtered
+        
+    # Save output
+    sf.write(output_path, normalized.astype(np.float32), sr)
+
 BENGALI_VOWELS = set("অআইঈউঊঋএঐওঔািীুূৃেৈোৌ")
 BENGALI_CONSONANTS = set("কখগঘঙচছজঝঞটঠডঢণতথদধনপফবভমযরলশষসহড়ঢ়য়ৎংঃঁ")
 ENGLISH_VOWELS = set("aeiou")
