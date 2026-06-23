@@ -39,6 +39,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricF1Val = document.getElementById('metricF1Val');
     const confusionMatrixContainer = document.getElementById('confusionMatrixContainer');
 
+    let playbackBoundary = null;
+
+    // Monitor playback time to pause at boundary if playing a single word
+    audioPlayer.addEventListener('timeupdate', () => {
+        if (playbackBoundary !== null && audioPlayer.currentTime >= playbackBoundary) {
+            audioPlayer.pause();
+            playbackBoundary = null;
+        }
+    });
+
+    // Clear boundary if the user manually seeks/scrubs the player
+    audioPlayer.addEventListener('seeking', () => {
+        playbackBoundary = null;
+    });
+
     // Load available local samples in workspace on start
     fetchSamples();
 
@@ -55,16 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Setup file selection via browse button / click
-    uploadZone.addEventListener('click', (e) => {
-        if (e.target.tagName !== 'BUTTON' && e.target.closest('button') === null) {
-            audioFileInput.click();
-        }
-    });
-    
-    uploadZone.querySelector('button').addEventListener('click', () => {
-        audioFileInput.click();
-    });
+
 
     audioFileInput.addEventListener('change', () => {
         if (audioFileInput.files.length > 0) {
@@ -241,9 +247,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="timeline-word-dur">${start} (${duration})</span>
                     `;
                     wordPill.addEventListener('click', () => {
-                        // Jump audio player to word start
-                        if (wordObj.start !== undefined) {
+                        // Play only this word
+                        if (wordObj.start !== undefined && wordObj.end !== undefined) {
                             audioPlayer.currentTime = wordObj.start;
+                            playbackBoundary = wordObj.end;
                             audioPlayer.play();
                         }
                     });
