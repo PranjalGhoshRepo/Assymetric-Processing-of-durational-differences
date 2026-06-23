@@ -20,6 +20,27 @@ print("Models preloaded successfully.")
 ENHANCED_DIR = os.path.join('static', 'enhanced')
 os.makedirs(ENHANCED_DIR, exist_ok=True)
 
+import subprocess
+
+def convert_to_wav_16k(input_path: str, output_path: str):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    ffmpeg_exe = os.path.join(current_dir, "ffmpeg.exe")
+    if not os.path.exists(ffmpeg_exe):
+        ffmpeg_exe = "ffmpeg"
+        
+    cmd = [
+        ffmpeg_exe,
+        "-y",
+        "-i", input_path,
+        "-ar", "16000",
+        "-ac", "1",
+        output_path
+    ]
+    print(f"Running conversion: {' '.join(cmd)}")
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        raise RuntimeError(f"ffmpeg conversion failed: {result.stderr.decode('utf-8', errors='ignore')}")
+
 def cleanup_enhanced_files():
     try:
         now = time.time()
@@ -58,12 +79,17 @@ def analyze():
     enhanced_filename = f"enhanced_{os.urandom(8).hex()}.wav"
     enhanced_path = os.path.join(ENHANCED_DIR, enhanced_filename)
     
+    wav_path = os.path.join(app.config['UPLOAD_FOLDER'], f"converted_{os.urandom(8).hex()}.wav")
+    
     try:
         file.save(temp_path)
-        print(f"File saved. Enhancing audio...")
+        print(f"File saved. Converting to 16kHz mono WAV...")
+        
+        convert_to_wav_16k(temp_path, wav_path)
         
         # 1. Clean background noise & enhance speech
-        enhance_audio(temp_path, enhanced_path)
+        print(f"Enhancing audio...")
+        enhance_audio(wav_path, enhanced_path)
         
         # 2. Perform analysis on the ENHANCED file
         print(f"Enhanced audio saved to {enhanced_path}. Running analysis...")
@@ -82,12 +108,13 @@ def analyze():
         return jsonify({'error': str(e)}), 500
         
     finally:
-        # Clean up raw upload
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception as e:
-                print(f"Error removing temporary file {temp_path}: {e}")
+        # Clean up raw upload and intermediate WAV file
+        for p in [temp_path, wav_path]:
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception as e:
+                    print(f"Error removing file {p}: {e}")
 
 @app.route('/samples/<path:filename>')
 def serve_sample(filename):
