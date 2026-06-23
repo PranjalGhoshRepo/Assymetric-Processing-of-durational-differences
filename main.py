@@ -21,10 +21,10 @@ sys.stdout.reconfigure(encoding="utf-8")
 groq_api_key = os.environ.get("GROQ_API_KEY")
 
 if groq_api_key:
-    print("\n=== Initializing Groq Client (Gemma 2) ===")
+    print("\n=== Initializing Groq Client (Llama 3.3) ===")
     llm = ChatOpenAI(
         base_url="https://api.groq.com/openai/v1",
-        model="gemma2-9b-it",
+        model="llama-3.3-70b-versatile",
         api_key=groq_api_key
     )
 else:
