@@ -40,6 +40,138 @@ document.addEventListener('DOMContentLoaded', () => {
     const metricF1Val = document.getElementById('metricF1Val');
     const confusionMatrixContainer = document.getElementById('confusionMatrixContainer');
 
+    // Input Mode Switching Elements
+    const tabUploadMode = document.getElementById('tabUploadMode');
+    const tabRecordMode = document.getElementById('tabRecordMode');
+    const uploadModeContainer = document.getElementById('uploadModeContainer');
+    const recordModeContainer = document.getElementById('recordModeContainer');
+
+    // Recording Controls Elements
+    const btnRecordStart = document.getElementById('btnRecordStart');
+    const btnRecordStop = document.getElementById('btnRecordStop');
+    const recordPulse = document.getElementById('recordPulse');
+    const recorderStateText = document.getElementById('recorderStateText');
+    const recordTimer = document.getElementById('recordTimer');
+    const recordVisualizer = document.getElementById('recordVisualizer');
+    const recordPreviewContainer = document.getElementById('recordPreviewContainer');
+    const recordPreviewPlayer = document.getElementById('recordPreviewPlayer');
+    const btnRecordDiscard = document.getElementById('btnRecordDiscard');
+    const btnRecordAnalyze = document.getElementById('btnRecordAnalyze');
+
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordTimerInterval = null;
+    let recordStartTime = null;
+    let recordedBlob = null;
+
+    // Toggle Mode Tabs
+    if (tabUploadMode && tabRecordMode) {
+        tabUploadMode.addEventListener('click', () => {
+            tabUploadMode.classList.add('active');
+            tabRecordMode.classList.remove('active');
+            uploadModeContainer.classList.remove('hidden');
+            recordModeContainer.classList.add('hidden');
+        });
+
+        tabRecordMode.addEventListener('click', () => {
+            tabRecordMode.classList.add('active');
+            tabUploadMode.classList.remove('active');
+            recordModeContainer.classList.remove('hidden');
+            uploadModeContainer.classList.add('hidden');
+        });
+    }
+
+    // Start Recording
+    if (btnRecordStart) {
+        btnRecordStart.addEventListener('click', async () => {
+            recordedChunks = [];
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) {
+                        recordedChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    recordedBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    const audioURL = URL.createObjectURL(recordedBlob);
+                    recordPreviewPlayer.src = audioURL;
+                    
+                    recordPreviewContainer.classList.remove('hidden');
+                    btnRecordStart.classList.remove('hidden');
+                    btnRecordStop.classList.add('hidden');
+                    recordVisualizer.classList.add('hidden');
+                    recordPulse.classList.remove('recording');
+                    recordPulse.style.backgroundColor = '';
+                    recorderStateText.textContent = 'Recording stopped. Preview below.';
+                };
+
+                mediaRecorder.start();
+                
+                btnRecordStart.classList.add('hidden');
+                btnRecordStop.classList.remove('hidden');
+                recordVisualizer.classList.remove('hidden');
+                recordPulse.classList.add('recording');
+                recordPreviewContainer.classList.add('hidden');
+                recorderStateText.textContent = 'Recording...';
+                
+                recordStartTime = Date.now();
+                updateTimer();
+                recordTimerInterval = setInterval(updateTimer, 1000);
+                
+            } catch (err) {
+                console.error("Microphone access denied or error:", err);
+                alert("Could not access microphone. Please check permissions.");
+            }
+        });
+    }
+
+    // Stop Recording
+    if (btnRecordStop) {
+        btnRecordStop.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                clearInterval(recordTimerInterval);
+            }
+        });
+    }
+
+    // Discard Recording
+    if (btnRecordDiscard) {
+        btnRecordDiscard.addEventListener('click', () => {
+            recordedChunks = [];
+            recordedBlob = null;
+            recordPreviewPlayer.src = '';
+            recordPreviewContainer.classList.add('hidden');
+            recordTimer.textContent = '00:00';
+            recorderStateText.textContent = 'Ready to record';
+        });
+    }
+
+    // Analyze Recording
+    if (btnRecordAnalyze) {
+        btnRecordAnalyze.addEventListener('click', () => {
+            if (recordedBlob) {
+                const fileExt = (mediaRecorder && mediaRecorder.mimeType) ? 
+                    mediaRecorder.mimeType.split(';')[0].split('/')[1] : 'webm';
+                const file = new File([recordedBlob], `live_record.${fileExt}`, { type: recordedBlob.type });
+                uploadAudioFile(file);
+            }
+        });
+    }
+
+    function updateTimer() {
+        const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+        const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const secs = String(elapsed % 60).padStart(2, '0');
+        recordTimer.textContent = `${mins}:${secs}`;
+    }
+
     let playbackBoundary = null;
 
     function checkPlaybackBoundary() {
