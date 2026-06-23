@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const samplesList = document.getElementById('samplesList');
     const playerContainer = document.getElementById('playerContainer');
     const audioPlayer = document.getElementById('audioPlayer');
+    const enhancedAudioPlayer = document.getElementById('enhancedAudioPlayer');
     const activeFileName = document.getElementById('activeFileName');
     
     const resultsPanel = document.getElementById('resultsPanel');
@@ -43,23 +44,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkPlaybackBoundary() {
         if (playbackBoundary !== null) {
-            if (audioPlayer.currentTime >= playbackBoundary) {
-                audioPlayer.pause();
+            if (enhancedAudioPlayer.currentTime >= playbackBoundary) {
+                enhancedAudioPlayer.pause();
                 playbackBoundary = null;
-            } else if (!audioPlayer.paused) {
+            } else if (!enhancedAudioPlayer.paused) {
                 requestAnimationFrame(checkPlaybackBoundary);
             }
         }
     }
 
-    // Clear boundary if the user manually seeks/scrubs the player
-    audioPlayer.addEventListener('seeking', () => {
-        playbackBoundary = null;
-    });
+    // Clear boundary if the user manually seeks/scrubs either player
+    audioPlayer.addEventListener('seeking', () => { playbackBoundary = null; });
+    enhancedAudioPlayer.addEventListener('seeking', () => { playbackBoundary = null; });
 
-    // Also clear boundary when user manually plays/pauses using the standard controls
-    audioPlayer.addEventListener('play', (e) => {
-        // If it was manual play (no boundary set), clear any leftover boundary
+    // Also clear boundary when user manually plays/pauses
+    audioPlayer.addEventListener('play', () => { playbackBoundary = null; });
+    enhancedAudioPlayer.addEventListener('play', () => {
         if (playbackBoundary === null) {
             playbackBoundary = null;
         }
@@ -230,6 +230,11 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsPlaceholder.classList.add('hidden');
         analysisOutput.classList.remove('hidden');
 
+        // Populate enhanced audio source
+        if (data.enhanced_audio_url) {
+            enhancedAudioPlayer.src = data.enhanced_audio_url;
+        }
+
         // 1. Render Summary stats
         const alignmentConf = data.metrics?.alignment_confidence;
         statAlignment.textContent = alignmentConf ? `${(alignmentConf * 100).toFixed(1)}%` : '98.5%'; // fallback to benchmark if not present
@@ -258,11 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="timeline-word-dur">${start} (${duration})</span>
                     `;
                     wordPill.addEventListener('click', () => {
-                        // Play only this word
+                        // Play only this word from the enhanced (noise cancelled) player
                         if (wordObj.start !== undefined && wordObj.end !== undefined) {
-                            audioPlayer.currentTime = wordObj.start;
+                            enhancedAudioPlayer.currentTime = wordObj.start;
                             playbackBoundary = wordObj.end;
-                            audioPlayer.play();
+                            enhancedAudioPlayer.play();
                             requestAnimationFrame(checkPlaybackBoundary);
                         }
                     });
