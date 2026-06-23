@@ -41,17 +41,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let playbackBoundary = null;
 
-    // Monitor playback time to pause at boundary if playing a single word
-    audioPlayer.addEventListener('timeupdate', () => {
-        if (playbackBoundary !== null && audioPlayer.currentTime >= playbackBoundary) {
-            audioPlayer.pause();
-            playbackBoundary = null;
+    function checkPlaybackBoundary() {
+        if (playbackBoundary !== null) {
+            if (audioPlayer.currentTime >= playbackBoundary) {
+                audioPlayer.pause();
+                playbackBoundary = null;
+            } else if (!audioPlayer.paused) {
+                requestAnimationFrame(checkPlaybackBoundary);
+            }
         }
-    });
+    }
 
     // Clear boundary if the user manually seeks/scrubs the player
     audioPlayer.addEventListener('seeking', () => {
         playbackBoundary = null;
+    });
+
+    // Also clear boundary when user manually plays/pauses using the standard controls
+    audioPlayer.addEventListener('play', (e) => {
+        // If it was manual play (no boundary set), clear any leftover boundary
+        if (playbackBoundary === null) {
+            playbackBoundary = null;
+        }
     });
 
     // Load available local samples in workspace on start
@@ -252,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             audioPlayer.currentTime = wordObj.start;
                             playbackBoundary = wordObj.end;
                             audioPlayer.play();
+                            requestAnimationFrame(checkPlaybackBoundary);
                         }
                     });
                     wordsTimeline.appendChild(wordPill);
